@@ -1,0 +1,82 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <title>ccNetViz</title>
+  <meta name="description" content="">
+  <script type="text/javascript">
+    window.addEventListener('load', function () {
+      const width = document.getElementById("graph").offsetWidth;
+      const height = document.getElementById("graph").offsetHeight;
+      const c = document.getElementById("ccnetviz");
+
+      const nodes = [];
+      const edges = [];
+      const nodeCount = 1600;
+
+      c.setAttribute("width", width);
+      c.setAttribute("height", height);
+
+      for (let k = 0; k < nodeCount; k++) {
+        nodes.push({
+          label: `Node ${k}`
+        });
+
+        if (nodes.length % 2 === 0) {
+          const sourceNode = nodes[nodes.length - 2];
+          const targetNode = nodes[Math.ceil(nodes.length - 1)];
+
+          edges.push({
+            source: sourceNode,
+            target: targetNode
+          });
+        }
+      }
+
+      const graph = new ccNetViz(c, {
+        styles: {
+          background: {
+            color: "rgb(240, 240, 240)"
+          },
+          node: {
+            texture: "./images/circle.png",
+            label: {
+              hideSize: 16
+            },
+            color: "rgb(95, 135, 125)"
+          },
+          edge: {
+            arrow: { texture: "./images/arrow.png" },
+            color: "rgb(95, 135, 125)"
+          }
+        }
+      });
+
+      graph.set(nodes, edges, "force");
+
+      graph.setViewport({
+        "x": 0.15,
+        "y": 0.15,
+        "size": 0.70
+      });
+
+      graph.draw();
+    }, false);
+  </script>
+  <style>
+    #graph {
+      width: 100%;
+      height: 400px;
+    }
+  </style>
+  <script src="static/js/ccNetViz.js"></script>
+</head>
+
+<body>
+  <div id="graph">
+    <canvas id="ccnetviz"></canvas>
+  </div>
+</body>
