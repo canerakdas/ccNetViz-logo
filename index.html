@@ -32,7 +32,7 @@
           label: `Node ${k}`
         });
 
-        if (nodes.length % 2 === 0) {
+        if (nodes.length > 2) {
           const sourceNode = nodes[nodes.length - 2];
           const targetNode = nodes[Math.ceil(nodes.length - 1)];
 
