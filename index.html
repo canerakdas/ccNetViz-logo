@@ -22,54 +22,144 @@
 
       const nodes = [];
       const edges = [];
-      const nodeCount = 1600;
+
+      const lineSpace = 0.03;
+      const lineHeight = 0.03;
+      const deflectionRatio = 0.06;
+      const cursor = 0;
+      var nodeMap = {};
+
+      function randomNumber(min, max) {
+        return Math.ceil(Math.random() * (max - min) + min);
+      }
 
       c.setAttribute("width", width);
       c.setAttribute("height", height);
 
-      for (let k = 0; k < nodeCount; k++) {
-        nodes.push({
-          label: `Node ${k}`
-        });
+      // Creating nodes
+      var x = 0;
+      for (var column = 0; ; column) {
+        if (x + lineSpace >= 0.98) {
+          break;
+        }
+        for (let cursor = 0; cursor < 1;) {
+          if (typeof nodeMap[column] !== "undefined") {
+            nodeMap[column] = nodeMap[column] + 1;
+          } else {
+            nodeMap[column] = 0;
+          }
 
-        if (nodes.length > 2) {
-          const sourceNode = nodes[nodes.length - 2];
-          const targetNode = nodes[Math.ceil(nodes.length - 1)];
+          x = (lineSpace * column) + (deflectionRatio / randomNumber(1, 5));
+
+          nodes.push({
+            label: `Node`,
+            x: x,
+            y: cursor
+          });
+
+          cursor += lineHeight + (deflectionRatio / randomNumber(1, 3));
+        }
+        column += 1;
+      }
+
+      // Set the edges
+      var nodeIndex = 0;
+      for (let index in nodeMap) {
+        const column = nodeMap[index];
+        for (let j = 0; j < column; j++) {
+          if (index > 0) {
+            const count = nodeMap[index - 1];
+            let sourceNode = nodes[nodeIndex + 1];
+            let targetNode = nodes[nodeIndex - count];
+
+            if (nodeMap[index - 1] >= nodeMap[index]) {
+              // Node rank 2
+              edges.push({
+                source: sourceNode,
+                target: targetNode
+              });
+
+              // Node rank 3,4 possibility
+              if (randomNumber(1, 5) === 3) {
+                sourceNode = nodes[nodeIndex];
+                targetNode = nodes[nodeIndex - count];
+
+                edges.push({
+                  source: sourceNode,
+                  target: targetNode
+                });
+              }
+
+              // Multiple edges possibility
+              if (randomNumber(1, 10) === 3) {
+                edges.push({
+                  source: targetNode,
+                  target: sourceNode
+                });
+              }
+
+              // TODO : Workaround
+              if (j === 0) {
+                sourceNode = nodes[nodeIndex];
+                targetNode = nodes[nodeIndex - count - 1];
+                edges.push({
+                  source: targetNode,
+                  target: sourceNode
+                });
+              }
+            } else {
+              if (j !== nodeMap[index - 1])
+                edges.push({
+                  source: sourceNode,
+                  target: targetNode
+                });
+            }
+          }
+
+          let sourceNode = nodes[nodeIndex];
+          let targetNode = nodes[nodeIndex + 1];
+
+          if ((j + 1 === column)) {
+            nodeIndex++
+          }
 
           edges.push({
             source: sourceNode,
             target: targetNode
           });
+
+          // Multiple edge possibility
+          if (randomNumber(1, 5) === 3) {
+            edges.push({
+              source: targetNode,
+              target: sourceNode
+            });
+          }
+          nodeIndex++;
         }
       }
 
+      // Drawing graph
       const graph = new ccNetViz(c, {
         styles: {
           background: {
-            color: "rgb(240, 240, 240)"
+            color: "rgb(255, 255, 255)"
           },
           node: {
             texture: "./images/circle.png",
             label: {
               hideSize: 16
             },
-            color: "rgb(95, 135, 125)"
+            color: "rgb(150, 150, 150)"
           },
           edge: {
-            arrow: { texture: "./images/arrow.png" },
-            color: "rgb(95, 135, 125)"
+            color: "rgb(150, 150, 150)"
           }
         }
       });
 
-      graph.set(nodes, edges, "force");
-
-      graph.setViewport({
-        "x": 0.15,
-        "y": 0.15,
-        "size": 0.70
-      });
-
+      graph.set(nodes, edges);
+      document.getElementById("stats").innerText = `${nodes.length} Nodes, ${edges.length} Edges`;
       graph.draw();
     }, false);
   </script>
@@ -78,5 +168,6 @@
 <body>
   <div id="graph">
     <canvas id="ccnetviz"></canvas>
+    <div id="stats"></div>
   </div>
 </body>
