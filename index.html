@@ -8,9 +8,17 @@
   <title>ccNetViz</title>
   <meta name="description" content="">
   <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+    }
+
     #graph {
       width: 100%;
       height: 400px;
+      background: #000;
+      text-align: center;
     }
   </style>
   <script src="static/js/ccNetViz.js"></script>
@@ -23,8 +31,8 @@
       const nodes = [];
       const edges = [];
 
-      const lineSpace = 0.03;
-      const lineHeight = 0.03;
+      const lineSpace = 14 / width;
+      const lineHeight = 12 / height;
       const deflectionRatio = 0.06;
       const cursor = 0;
       var nodeMap = {};
@@ -42,22 +50,22 @@
         if (x + lineSpace >= 0.98) {
           break;
         }
-        for (let cursor = 0; cursor < 1;) {
+        for (let y = 0; y < 1 - (lineHeight + deflectionRatio / 2);) {
           if (typeof nodeMap[column] !== "undefined") {
             nodeMap[column] = nodeMap[column] + 1;
           } else {
             nodeMap[column] = 0;
           }
 
-          x = (lineSpace * column) + (deflectionRatio / randomNumber(1, 5));
+          x = (lineSpace * column) + (deflectionRatio / randomNumber(1, 10));
+          y += lineHeight + (deflectionRatio / randomNumber(1, 10));
 
           nodes.push({
             label: `Node`,
             x: x,
-            y: cursor
+            y: y
           });
 
-          cursor += lineHeight + (deflectionRatio / randomNumber(1, 3));
         }
         column += 1;
       }
@@ -108,7 +116,7 @@
                 });
               }
             } else {
-              if (j !== nodeMap[index - 1])
+              if (j < nodeMap[index - 1])
                 edges.push({
                   source: sourceNode,
                   target: targetNode
@@ -150,13 +158,13 @@
             label: {
               hideSize: 16
             },
-            color: "rgb(140, 140, 140)"
+            color: "rgb(50, 50, 50)"
           },
           ccNetViz: {
             color: "rgb(240, 240, 240)"
           },
           edge: {
-            color: "rgb(140, 140, 140)"
+            color: "rgb(50, 50, 50)"
           }
         }
       });
@@ -298,43 +306,47 @@
 
       text = text.map(item => { return transpose(item) });
 
-      const NODE = {
-        LINE_SPACE: 0.02,
-        SPACE: 0.007
-      };
+      function createText(text) {
+        const NODE = {
+          LINE_SPACE: (8 / height),
+          SPACE: 6.80 / width
+        };
 
-      const textNodeList = [];
-      let xCursor = (1 - (nodeCount * NODE.SPACE)) / 2;
-      for (let i = 0; i < text.length; i++) {
-        const letter = text[i];
+        const textNodes = [];
+        let xCursor = (1 - (nodeCount * NODE.SPACE)) / 2;
+        for (let i = 0; i < text.length; i++) {
+          const letter = text[i];
 
-        for (let j = 0; j < letter.length; j++) {
-          const element = letter[j];
-          let y = (1 - (15 * NODE.LINE_SPACE));
+          for (let j = 0; j < letter.length; j++) {
+            const element = letter[j];
+            let y = (1 - (15 * NODE.LINE_SPACE));
 
-          if (typeof letter[j][0] === "undefined") {
-            break;
-          }
-
-          for (let k = 0; k < element.length; k++) {
-            const row = element[k];
-            if (row === 1) {
-              textNodeList.push({
-                x: xCursor,
-                y: y,
-                style: "ccNetViz"
-              })
+            if (typeof letter[j][0] === "undefined") {
+              break;
             }
-            y = y - NODE.LINE_SPACE;
+
+            for (let k = 0; k < element.length; k++) {
+              const row = element[k];
+              if (row === 1) {
+                textNodes.push({
+                  x: xCursor,
+                  y: y,
+                  style: "ccNetViz"
+                })
+              }
+              y = y - NODE.LINE_SPACE;
+            }
+            xCursor = xCursor + NODE.SPACE;
           }
-          xCursor = xCursor + NODE.SPACE;
         }
+        return textNodes;
       }
 
-      graph.set(nodes.concat(nodes, textNodeList), edges);
-      document.getElementById("stats").innerText = `${nodes.length} Nodes, ${edges.length} Edges`;
-
+      const logo = createText(text);
+      graph.set(nodes.concat(nodes, logo), edges);
       graph.draw();
+
+      document.getElementById("stats").innerText = `${nodes.length} Nodes, ${edges.length} Edges`;
     }, false);
   </script>
 </head>
