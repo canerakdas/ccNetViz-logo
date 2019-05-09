@@ -161,10 +161,22 @@
             color: "rgb(50, 50, 50)"
           },
           ccNetViz: {
-            color: "rgb(240, 240, 240)"
+            color: "rgb(255, 255, 255)"
           },
           edge: {
             color: "rgb(50, 50, 50)"
+          },
+          blue_active: {
+            color: "rgb(36, 82, 206)"
+          },
+          blue_passive: {
+            color: "rgb(93, 117, 183)"
+          },
+          red_active: {
+            color: "rgb(204, 34, 34)"
+          },
+          red_passive: {
+            color: "rgb(204, 77, 77)"
           }
         }
       });
@@ -300,13 +312,13 @@
       }
 
 
-      var text = [_c, _c, _n, _e, _t, _v, _i, _z];
+      let text = [_c, _c, _n, _e, _t, _v, _i, _z];
 
       const nodeCount = text.map(item => { return item[0].length }).reduce(function (a, b) { return a + b }, 0);
 
       text = text.map(item => { return transpose(item) });
 
-      function createText(text) {
+      function matrixToGraph(text) {
         const NODE = {
           LINE_SPACE: (8 / height),
           SPACE: 6.80 / width
@@ -342,9 +354,122 @@
         return textNodes;
       }
 
-      const logo = createText(text);
-      graph.set(nodes.concat(nodes, logo), edges);
+      const logo = matrixToGraph(text);
+      const nodeList = nodes.concat(nodes, logo);
+
+      const animation = {
+        frame: {
+          count: 0,
+          index: 0
+        },
+        fps: 15,
+        time: 10,
+        circle: {
+          size: {
+            minimum: 0.009,
+            maximum: Math.random() * (0.5 - 0.01) + 0.01,
+            raise: 0,
+            index: 0
+          },
+          color: {
+            start: "blue_active",
+            end: "blue_passive"
+          }
+        },
+      };
+
+      animation.frame.count = animation.fps * animation.time;
+      animation.circle.size.raise = (animation.circle.size.maximum - animation.circle.size.minimum) / animation.frame.count;
+
+      graph.set(nodeList, edges);
       graph.draw();
+
+      let r = {
+        x: Math.random(),
+        y: Math.random()
+      }
+
+      let pulseInterval = setInterval(pulse, 1000 / animation.fps, animation);
+
+      function pulse() {
+        if (animation.frame.count === animation.frame.index) {
+          r = {
+            x: Math.random(),
+            y: Math.random()
+          }
+
+          animation.frame.index = 0;
+          animation.circle.size.index = 0;
+          animation.circle.size.maximum = Math.random() * (0.5 - 0.01) + 0.01;
+          animation.circle.size.raise = (animation.circle.size.maximum - animation.circle.size.minimum) / animation.frame.count;
+
+          if (Math.floor(Math.random() * Math.floor(10)) > 5) {
+            animation.circle.color.start = "red_active";
+            animation.circle.color.end = "red_passive";
+          } else {
+            animation.circle.color.start = "blue_active";
+            animation.circle.color.end = "blue_passive";
+          }
+
+          clearInterval(pulseInterval)
+          pulseInterval = setInterval(pulse, 1000 / animation.fps, animation);
+        }
+
+        animation.frame.index++;
+        if (animation.frame.index === 1) {
+          animation.circle.size.index += animation.circle.size.minimum;
+        }
+        animation.circle.size.index += animation.circle.size.raise;
+
+        const circle = graph.find(r.x, r.y, animation.circle.size.index, true, false);
+        const circleActive = graph.find(r.x, r.y, animation.circle.size.index + 0.04, true, false);
+        const circleTransition = graph.find(r.x, r.y, animation.circle.size.index + 0.03, true, false);
+
+        //Last 3 frame, remove effect
+        if (animation.frame.index + 3 >= animation.frame.count) {
+          for (let index = 0; index < circleActive.nodes.length; index++) {
+            const element = circleActive.nodes[index];
+            if (typeof element.node.style === "undefined" || element.node.style === animation.circle.color.start || element.node.style === animation.circle.color.end) {
+              const j = element.node.index;
+              nodeList[j]["style"] = undefined;
+            }
+          }
+        } else {
+          // Set the active color
+          if (!(animation.frame.index + ((animation.frame.count * 20) / 100) >= animation.frame.count)) {
+            for (let index = 0; index < circleActive.nodes.length; index++) {
+              const element = circleActive.nodes[index];
+              if (typeof element.node.style === "undefined") {
+                const j = element.node.index;
+                nodeList[j]["style"] = animation.circle.color.start;
+              }
+            }
+          }
+
+          // Set the passive color
+          for (let index = 0; index < circleTransition.nodes.length; index++) {
+            const element = circleTransition.nodes[index];
+            if (element.node.style === animation.circle.color.start) {
+              const element = circleTransition.nodes[index];
+              const j = element.node.index;
+              nodeList[j]["style"] = animation.circle.color.end;
+            }
+          }
+
+          // Set the predefined color
+          for (let index = 0; index < circle.nodes.length; index++) {
+            const element = circle.nodes[index];
+            if (element.node.style === animation.circle.color.end) {
+              const element = circle.nodes[index];
+              const j = element.node.index;
+              nodeList[j]["style"] = undefined;
+            }
+          }
+        }
+
+        graph.set(nodeList, edges);
+        graph.draw();
+      }
 
       document.getElementById("stats").innerText = `${nodes.length} Nodes, ${edges.length} Edges`;
     }, false);
