@@ -367,7 +367,7 @@
         circle: {
           size: {
             minimum: 0.009,
-            maximum: Math.random() * (0.5 - 0.01) + 0.01,
+            maximum: Math.random() * (0.7 - 0.05) + 0.05,
             raise: 0,
             index: 0
           },
@@ -400,7 +400,7 @@
 
           animation.frame.index = 0;
           animation.circle.size.index = 0;
-          animation.circle.size.maximum = Math.random() * (0.5 - 0.01) + 0.01;
+          animation.circle.size.maximum = Math.random() * (0.7 - 0.05) + 0.05;
           animation.circle.size.raise = (animation.circle.size.maximum - animation.circle.size.minimum) / animation.frame.count;
 
           if (Math.floor(Math.random() * Math.floor(10)) > 5) {
