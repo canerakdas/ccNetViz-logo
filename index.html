@@ -31,8 +31,8 @@
       const nodes = [];
       const edges = [];
 
-      const lineSpace = 14 / width;
-      const lineHeight = 12 / height;
+      const lineSpace = 20 / width;
+      const lineHeight = 20 / height;
       const deflectionRatio = 0.06;
       const cursor = 0;
       var nodeMap = {};
@@ -166,17 +166,26 @@
           edge: {
             color: "rgb(50, 50, 50)"
           },
+          default: {
+            color: "rgb(50, 50, 50)"
+          },
           blue_active: {
             color: "rgb(36, 82, 206)"
           },
           blue_passive: {
             color: "rgb(93, 117, 183)"
           },
+          blue_edge: {
+            color: "rgb(113, 137, 203)"
+          },
           red_active: {
             color: "rgb(204, 34, 34)"
           },
           red_passive: {
             color: "rgb(204, 77, 77)"
+          },
+          red_edge: {
+            color: "rgb(224, 97, 97)"
           }
         }
       });
@@ -311,7 +320,6 @@
         return arr.map((col, i) => arr.map(row => row[i]));
       }
 
-
       let text = [_c, _c, _n, _e, _t, _v, _i, _z];
 
       const nodeCount = text.map(item => { return item[0].length }).reduce(function (a, b) { return a + b }, 0);
@@ -362,18 +370,19 @@
           count: 0,
           index: 0
         },
-        fps: 15,
+        fps: 1,
         time: 10,
         circle: {
           size: {
-            minimum: 0.009,
-            maximum: Math.random() * (0.7 - 0.05) + 0.05,
+            minimum: 0.01,
+            maximum: 0.05,
             raise: 0,
             index: 0
           },
           color: {
             start: "blue_active",
-            end: "blue_passive"
+            end: "blue_passive",
+            edge: "blue_edge"
           }
         },
       };
@@ -384,85 +393,118 @@
       graph.set(nodeList, edges);
       graph.draw();
 
-      let r = {
-        x: Math.random(),
-        y: Math.random()
-      }
-
-      let pulseInterval = setInterval(pulse, 1000 / animation.fps, animation);
-
-      function pulse() {
-        if (animation.frame.count === animation.frame.index) {
-          r = {
+      let animationInstances = [];
+      let r = [];
+      for (let i = 0; i < 5; i++) {
+        setTimeout(function () {
+          animationInstances[i] = JSON.stringify(animation);
+          animationInstances[i] = JSON.parse(animationInstances[i]);
+          r[i] = {
             x: Math.random(),
             y: Math.random()
-          }
+          };
 
-          animation.frame.index = 0;
-          animation.circle.size.index = 0;
-          animation.circle.size.maximum = Math.random() * (0.7 - 0.05) + 0.05;
-          animation.circle.size.raise = (animation.circle.size.maximum - animation.circle.size.minimum) / animation.frame.count;
+          setInterval(function () {
+            if (animationInstances[i].frame.count === animationInstances[i].frame.index) {
+              r[i] = {
+                x: Math.random(),
+                y: Math.random()
+              };
+            }
+            pulse(animationInstances[i], r[i]);
+          }, 1000 / animation.fps);
 
-          if (Math.floor(Math.random() * Math.floor(10)) > 5) {
-            animation.circle.color.start = "red_active";
-            animation.circle.color.end = "red_passive";
+        }, i * 2000);
+      }
+
+      function pulse(a, r) {
+        if (a.frame.count === a.frame.index) {
+          a.frame.index = 0;
+          a.circle.size.index = 0;
+          a.circle.size.raise = (a.circle.size.maximum - a.circle.size.minimum) / a.frame.count;
+
+          if (Math.floor(Math.random() * Math.floor(2)) > 0) {
+            a.circle.color.start = "red_active";
+            a.circle.color.end = "red_passive";
+            a.circle.color.edge = "red_edge";
           } else {
-            animation.circle.color.start = "blue_active";
-            animation.circle.color.end = "blue_passive";
+            a.circle.color.start = "blue_active";
+            a.circle.color.end = "blue_passive";
+            a.circle.color.edge = "blue_edge";
           }
-
-          clearInterval(pulseInterval)
-          pulseInterval = setInterval(pulse, 1000 / animation.fps, animation);
         }
 
-        animation.frame.index++;
-        if (animation.frame.index === 1) {
-          animation.circle.size.index += animation.circle.size.minimum;
-        }
-        animation.circle.size.index += animation.circle.size.raise;
+        a.frame.index++;
+        a.frame.index === 1 ? a.circle.size.index += a.circle.size.minimum : false;
+        a.circle.size.index += a.circle.size.raise;
 
-        const circle = graph.find(r.x, r.y, animation.circle.size.index, true, false);
-        const circleActive = graph.find(r.x, r.y, animation.circle.size.index + 0.04, true, false);
-        const circleTransition = graph.find(r.x, r.y, animation.circle.size.index + 0.03, true, false);
+        const circle = graph.find(r.x, r.y, a.circle.size.index, true, true);
+        const circleActive = graph.find(r.x, r.y, a.circle.size.index + 0.04, true, true);
+        const circleTransition = graph.find(r.x, r.y, a.circle.size.index + 0.02, true, true);
 
         //Last 3 frame, remove effect
-        if (animation.frame.index + 3 >= animation.frame.count) {
+        if (a.frame.index + 3 === a.frame.count) {
           for (let index = 0; index < circleActive.nodes.length; index++) {
             const element = circleActive.nodes[index];
-            if (typeof element.node.style === "undefined" || element.node.style === animation.circle.color.start || element.node.style === animation.circle.color.end) {
+            if (element.node.style !== "ccNetViz") {
+              const j = element.node.index;
+              nodeList[j]["style"] = a.circle.color.end;
+            }
+          }
+        }
+
+        if (a.frame.index === a.frame.count) {
+          for (let index = 0; index < circleActive.nodes.length; index++) {
+            const element = circleActive.nodes[index];
+            if (element.node.style !== "ccNetViz") {
               const j = element.node.index;
               nodeList[j]["style"] = undefined;
             }
           }
+          for (let index = 0; index < circleActive.edges.length; index++) {
+            const element = circleActive.edges[index];
+            element.edge.style = undefined;
+          }
         } else {
           // Set the active color
-          if (!(animation.frame.index + ((animation.frame.count * 20) / 100) >= animation.frame.count)) {
+          if (!(a.frame.index + ((a.frame.count * 20) / 100) >= a.frame.count)) {
             for (let index = 0; index < circleActive.nodes.length; index++) {
               const element = circleActive.nodes[index];
               if (typeof element.node.style === "undefined") {
                 const j = element.node.index;
-                nodeList[j]["style"] = animation.circle.color.start;
+                nodeList[j]["style"] = a.circle.color.start;
               }
+            }
+
+            for (let index = 0; index < circleActive.edges.length; index++) {
+              const element = circleActive.edges[index];
+              if (typeof element.edge.style === "undefined" && element.edge.t !== 1)
+                element.edge.style = a.circle.color.edge;
             }
           }
 
           // Set the passive color
           for (let index = 0; index < circleTransition.nodes.length; index++) {
             const element = circleTransition.nodes[index];
-            if (element.node.style === animation.circle.color.start) {
+            if (element.node.style === a.circle.color.start) {
               const element = circleTransition.nodes[index];
               const j = element.node.index;
-              nodeList[j]["style"] = animation.circle.color.end;
+              nodeList[j]["style"] = a.circle.color.end;
             }
+          }
+          for (let index = 0; index < circle.edges.length; index++) {
+            const element = circle.edges[index];
+            element.edge.style = "default";
           }
 
           // Set the predefined color
           for (let index = 0; index < circle.nodes.length; index++) {
             const element = circle.nodes[index];
-            if (element.node.style === animation.circle.color.end) {
+            if (element.node.style === a.circle.color.end) {
               const element = circle.nodes[index];
               const j = element.node.index;
-              nodeList[j]["style"] = undefined;
+              if (element.node.style !== "default")
+                nodeList[j]["style"] = "default";
             }
           }
         }
