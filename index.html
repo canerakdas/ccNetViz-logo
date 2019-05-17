@@ -46,7 +46,7 @@
 
     #graph #generator #menu {
       background: #e6e6e6;
-      width: 25px;
+      width: 20px;
       height: 40px;
       position: absolute;
       left: -20px;
@@ -105,10 +105,22 @@
       margin: 5px 3px;
     }
 
+    div#zoom-information {
+      position: absolute;
+      z-index: 55;
+      right: 5px;
+      bottom: 5px;
+      color: rgba(255, 255, 255, 0.7);
+      font-family: 'Open Sans', sans-serif;
+      font-size: 12px;
+    }
+
     div#generator.active #menu svg {
       transform: rotate(180deg);
     }
   </style>
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto" rel="stylesheet">
+
   <script src="static/js/ccNetViz.js"></script>
   <script type="text/javascript">
     window.addEventListener('load', function () {
@@ -116,8 +128,8 @@
         const nodes = [];
         const edges = [];
 
-        const x1 = settings.nodeFrequency / settings.width; // x axis node space
-        const y1 = settings.nodeFrequency / settings.height; // y axis node space
+        const x1 = settings.nodeFrequency / settings.width;
+        const y1 = settings.nodeFrequency / settings.height;
         const deflection = 0.06;
         let grid = {};
 
@@ -648,12 +660,12 @@
       <div id="menu">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="30">
           <g>
-            <title>Layer 1</title>
             <polygon stroke="null" fill="#333333" id="svg_1"
               points="12.470660711515762,7.262451527033875 10.89953332097403,5.68645715713501 3.131425619125366,13.469150521541394 3.131425619125366,13.469150521541394 3.131425619125366,13.469150521541394 10.89953332097403,21.25184856895197 12.470660711515762,19.675854422053305 6.2785539580718535,13.469150521541394 " />
           </g>
         </svg>
       </div>
     </div>
+    <div id="zoom-information">Use mouse to pan and zoom in the graph.</div>
   </div>
 </body>
