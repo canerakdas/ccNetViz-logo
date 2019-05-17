@@ -7,6 +7,7 @@
 
   <title>ccNetViz</title>
   <meta name="description" content="">
+
   <style>
     body,
     html {
@@ -19,176 +20,463 @@
       height: 400px;
       background: #000;
       text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #graph #generator {
+      position: absolute;
+      top: 40px;
+      background: #f8f8f8;
+      border-radius: 2px;
+      width: 200px;
+      padding: 10px;
+      text-align: left;
+      font-family: 'Open Sans', sans-serif;
+      transition: 0.2s ease all;
+    }
+
+    #generator.disable {
+      right: -220px;
+    }
+
+    #generator.active {
+      right: 0;
+    }
+
+    #graph #generator #menu {
+      background: #e6e6e6;
+      width: 25px;
+      height: 40px;
+      position: absolute;
+      left: -20px;
+      top: 40px;
+      border-top-left-radius: 2px;
+      border-bottom-left-radius: 2px;
+      cursor: pointer;
+      box-shadow: 0 0 3px #b5b5b5;
+    }
+
+    div#draw {
+      background: #1aad3c;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      box-shadow: 0 0 3px #024412;
+      text-align: center;
+      padding: 5px 0;
+      border-radius: 3px;
+    }
+
+    div#generator label {
+      font-size: 14px;
+      display: block;
+      text-align: center;
+      color: #444;
+      margin-bottom: 5px;
+    }
+
+    div#generator label b {
+      font-size: 10px;
+      display: block;
+    }
+
+    #node_freq {
+      border: none;
+      width: 100%;
+      padding: 5px 0;
+      border-radius: 2px;
+      background: #b7b7b7;
+      text-align: center;
+      color: #333;
+      font-weight: bold;
+    }
+
+    div#stats {
+      font-size: 12px;
+      text-align: center;
+      color: #444;
+      margin: 5px 0;
+    }
+
+    div#menu svg {
+      margin: 5px 3px;
+    }
+
+    div#generator.active #menu svg {
+      transform: rotate(180deg);
     }
   </style>
   <script src="static/js/ccNetViz.js"></script>
   <script type="text/javascript">
     window.addEventListener('load', function () {
-      const width = document.getElementById("graph").offsetWidth;
-      const height = document.getElementById("graph").offsetHeight;
-      const c = document.getElementById("ccnetviz");
+      function drawLogo(c, settings, t) {
+        const nodes = [];
+        const edges = [];
 
-      const nodes = [];
-      const edges = [];
+        const x1 = settings.nodeFrequency / settings.width; // x axis node space
+        const y1 = settings.nodeFrequency / settings.height; // y axis node space
+        const deflection = 0.06;
+        let grid = {};
 
-      const lineSpace = 20 / width;
-      const lineHeight = 20 / height;
-      const deflectionRatio = 0.06;
-      const cursor = 0;
-      var nodeMap = {};
-
-      function randomNumber(min, max) {
-        return Math.ceil(Math.random() * (max - min) + min);
-      }
-
-      c.setAttribute("width", width);
-      c.setAttribute("height", height);
-
-      // Creating nodes
-      var x = 0;
-      for (var column = 0; ; column) {
-        if (x + lineSpace >= 0.98) {
-          break;
+        function randomNumber(min, max) {
+          return Math.ceil(Math.random() * (max - min) + min);
         }
-        for (let y = 0; y < 1 - (lineHeight + deflectionRatio / 2);) {
-          if (typeof nodeMap[column] !== "undefined") {
-            nodeMap[column] = nodeMap[column] + 1;
-          } else {
-            nodeMap[column] = 0;
+
+        c.setAttribute("width", settings.width);
+        c.setAttribute("height", settings.height);
+
+        // Creating nodes
+        let x = 0;
+        for (let cursor = 0; ; cursor) {
+          if (x + x1 >= 0.98) {
+            break;
+          }
+          for (let y = 0; y < 1 - (y1 + deflection / 2);) {
+            if (typeof grid[cursor] !== "undefined") {
+              grid[cursor] = grid[cursor] + 1;
+            } else {
+              grid[cursor] = 0;
+            }
+
+            x = (x1 * cursor) + (deflection / randomNumber(1, 10));
+            y += y1 + (deflection / randomNumber(1, 10));
+
+            nodes.push({
+              label: `Node`,
+              x: x,
+              y: y
+            });
+          }
+          cursor += 1;
+        }
+
+        // Set the edges
+        let i = 0;
+        for (let index in grid) {
+          const column = grid[index];
+          for (let j = 0; j < column; j++) {
+            if (index > 0) {
+              const count = grid[index - 1];
+              let sourceNode = nodes[i + 1];
+              let targetNode = nodes[i - count];
+
+              if (grid[index - 1] >= grid[index]) {
+                // Node rank 2
+                edges.push({
+                  source: sourceNode,
+                  target: targetNode
+                });
+
+                // Node rank 3,4 possibility
+                if (randomNumber(1, 5) === 3) {
+                  sourceNode = nodes[i];
+                  targetNode = nodes[i - count];
+
+                  edges.push({
+                    source: sourceNode,
+                    target: targetNode
+                  });
+                }
+
+                // Multiple edges possibility
+                if (randomNumber(1, 10) === 3) {
+                  edges.push({
+                    source: targetNode,
+                    target: sourceNode
+                  });
+                }
+
+                // TODO : Workaround
+                if (j === 0) {
+                  sourceNode = nodes[i];
+                  targetNode = nodes[i - count - 1];
+                  edges.push({
+                    source: targetNode,
+                    target: sourceNode
+                  });
+                }
+              } else {
+                if (j < grid[index - 1])
+                  edges.push({
+                    source: sourceNode,
+                    target: targetNode
+                  });
+              }
+            }
+
+            let sourceNode = nodes[i];
+            let targetNode = nodes[i + 1];
+
+            if ((j + 1 === column)) {
+              i++
+            }
+
+            edges.push({
+              source: sourceNode,
+              target: targetNode
+            });
+
+            // Multiple edge possibility
+            if (randomNumber(1, 5) === 3) {
+              edges.push({
+                source: targetNode,
+                target: sourceNode
+              });
+            }
+            i++;
+          }
+        }
+
+
+        function colorGradient(s, e, c, name) {
+          let start = s;
+          let end = e;
+          let alpha = 0.0;
+          let colors = {};
+
+          const len = c;
+
+          for (let i = 0; i < len; i++) {
+            let c = [];
+            let n = `${name}-${i}`;
+            let nr = `${name}-${len * 2 - (i + 1)}`
+            alpha += (1.0 / len);
+
+
+            c[0] = start[0] * alpha + (1 - alpha) * end[0];
+            c[1] = start[1] * alpha + (1 - alpha) * end[1];
+            c[2] = start[2] * alpha + (1 - alpha) * end[2];
+
+            colors[n] = { color: `rgb(${Math.abs(Math.floor(c[0]))},${Math.abs(Math.floor(c[1]))},${Math.abs(Math.floor(c[2]))})` };
+            colors[nr] = { color: `rgb(${Math.abs(Math.floor(c[0]))},${Math.abs(Math.floor(c[1]))},${Math.abs(Math.floor(c[2]))})` };
+          }
+          return colors;
+        }
+
+        let colorSlice = [
+          colorGradient([36, 82, 206], [50, 50, 50], 35, "blue"),
+          colorGradient([204, 34, 34], [50, 50, 50], 35, "red"),
+          colorGradient([35, 180, 70], [50, 50, 50], 35, "green")
+        ];
+
+        let s = {
+          styles: {
+            background: {
+              color: "rgb(0, 0, 0)"
+            },
+            node: {
+              texture: "./images/circle.png",
+              label: {
+                hideSize: 16
+              },
+              color: "rgb(50, 50, 50)"
+            },
+            ccNetViz: {
+              color: "rgb(255, 255, 255)"
+            },
+            edge: {
+              color: "rgb(50, 50, 50)"
+            },
+            default: {
+              color: "rgb(50, 50, 50)"
+            }
+          }
+        };
+
+        for (let i = 0; i < colorSlice.length; i++) {
+          const color = colorSlice[i];
+          for (let key in color) {
+            s.styles[key] = color[key];
+          }
+        }
+
+
+        // Drawing graph
+        const graph = new ccNetViz(c, s);
+
+        const nodeCount = t.map(item => { return item[0].length }).reduce(function (a, b) { return a + b }, 0);
+
+        function transpose(arr) {
+          return arr.map((col, i) => arr.map(row => row[i]));
+        }
+
+        t = t.map(item => { return transpose(item) });
+
+        function matrixToGraph(text) {
+          const NODE = {
+            LINE_SPACE: (8 / settings.height),
+            SPACE: 6.80 / settings.width
+          };
+
+          const textNodes = [];
+          let xCursor = (1 - (nodeCount * NODE.SPACE)) / 2;
+          for (let i = 0; i < text.length; i++) {
+            const letter = text[i];
+
+            for (let j = 0; j < letter.length; j++) {
+              const element = letter[j];
+              let y = (1 - (15 * NODE.LINE_SPACE));
+
+              if (typeof letter[j][0] === "undefined") {
+                break;
+              }
+
+              for (let k = 0; k < element.length; k++) {
+                const row = element[k];
+                if (row === 1) {
+                  textNodes.push({
+                    x: xCursor,
+                    y: y,
+                    style: "ccNetViz"
+                  })
+                }
+                y = y - NODE.LINE_SPACE;
+              }
+              xCursor = xCursor + NODE.SPACE;
+            }
+          }
+          return textNodes;
+        }
+
+        const logo = matrixToGraph(t);
+        const nodeList = nodes.concat(nodes, logo);
+
+        const animation = {
+          frame: {
+            count: 0,
+            index: 0
+          },
+          fps: 10,
+          time: 7,
+          circle: {
+            size: {
+              minimum: 0.01,
+              maximum: 0.07,
+              raise: 0,
+              index: 0
+            },
+            color: {
+              code: undefined,
+              name: undefined
+            }
+          },
+        };
+
+        animation.frame.count = animation.fps * animation.time;
+        animation.circle.size.raise = (animation.circle.size.maximum - animation.circle.size.minimum) / animation.frame.count;
+
+        graph.set(nodeList, edges);
+        graph.draw();
+
+        let animationInstances = [];
+        let r = [];
+        for (let i = 0; i < 5; i++) {
+          setTimeout(function () {
+            animationInstances[i] = JSON.stringify(animation);
+            animationInstances[i] = JSON.parse(animationInstances[i]);
+            const color = randomNumber(0, 3);
+            const date = Date.now();
+
+            r[i] = {
+              x: Math.random(),
+              y: Math.random()
+            };
+
+            if (color === 1) {
+              animationInstances[i].circle.color.name = "green";
+            } else if (color === 2) {
+              animationInstances[i].circle.color.name = "blue";
+            } else {
+              animationInstances[i].circle.color.name = "red";
+            }
+
+            setInterval(function () {
+              if (animationInstances[i].frame.count === animationInstances[i].frame.index) {
+                r[i] = {
+                  x: Math.random(),
+                  y: Math.random()
+                };
+              }
+              pulse(animationInstances[i], r[i], date);
+            }, 1000 / animation.fps);
+
+          }, i * 2000);
+        }
+
+        function pulse(a, r, d) {
+          if (a.frame.count === a.frame.index) {
+            a.frame.index = 0;
+            a.circle.size.index = 0;
+            a.circle.size.raise = (a.circle.size.maximum - a.circle.size.minimum) / a.frame.count;
           }
 
-          x = (lineSpace * column) + (deflectionRatio / randomNumber(1, 10));
-          y += lineHeight + (deflectionRatio / randomNumber(1, 10));
+          a.circle.color.code = `${a.circle.color.name}-${a.frame.index}`;
+          a.frame.index++;
+          a.frame.index === 1 ? a.circle.size.index += a.circle.size.minimum : false;
+          a.circle.size.index += a.circle.size.raise;
 
-          nodes.push({
-            label: `Node`,
-            x: x,
-            y: y
-          });
+          let circleActive = graph.find(r.x, r.y, a.circle.size.index + 0.03, true, true);
 
-        }
-        column += 1;
-      }
-
-      // Set the edges
-      var nodeIndex = 0;
-      for (let index in nodeMap) {
-        const column = nodeMap[index];
-        for (let j = 0; j < column; j++) {
-          if (index > 0) {
-            const count = nodeMap[index - 1];
-            let sourceNode = nodes[nodeIndex + 1];
-            let targetNode = nodes[nodeIndex - count];
-
-            if (nodeMap[index - 1] >= nodeMap[index]) {
-              // Node rank 2
-              edges.push({
-                source: sourceNode,
-                target: targetNode
-              });
-
-              // Node rank 3,4 possibility
-              if (randomNumber(1, 5) === 3) {
-                sourceNode = nodes[nodeIndex];
-                targetNode = nodes[nodeIndex - count];
-
-                edges.push({
-                  source: sourceNode,
-                  target: targetNode
-                });
+          if (a.frame.index === a.frame.count) {
+            for (let index = 0; index < circleActive.nodes.length; index++) {
+              const element = circleActive.nodes[index];
+              if (element.node.style !== "ccNetViz") {
+                setTimeout(function () {
+                  element.node.animation_time = undefined;
+                }, 2000);
+                element.node.style = undefined;
               }
-
-              // Multiple edges possibility
-              if (randomNumber(1, 10) === 3) {
-                edges.push({
-                  source: targetNode,
-                  target: sourceNode
-                });
+            }
+            for (let index = 0; index < circleActive.edges.length; index++) {
+              const element = circleActive.edges[index];
+              element.edge.style = undefined;
+              setTimeout(function () {
+                element.edge.animation_time = undefined;
+              }, 2000);
+            }
+          }
+          // Set the active color
+          for (let index = 0; index < circleActive.nodes.length; index++) {
+            const element = circleActive.nodes[index];
+            if (element.node.style !== "ccNetViz") {
+              if (typeof element.node.animation_time !== "undefined") {
+                if (element.node.animation_time >= d) {
+                  element.node.animation_time = d;
+                  element.node.style = a.circle.color.code;
+                }
+              } else {
+                element.node.animation_time = d;
+                element.node.style = a.circle.color.code;
               }
-
-              // TODO : Workaround
-              if (j === 0) {
-                sourceNode = nodes[nodeIndex];
-                targetNode = nodes[nodeIndex - count - 1];
-                edges.push({
-                  source: targetNode,
-                  target: sourceNode
-                });
-              }
-            } else {
-              if (j < nodeMap[index - 1])
-                edges.push({
-                  source: sourceNode,
-                  target: targetNode
-                });
             }
           }
 
-          let sourceNode = nodes[nodeIndex];
-          let targetNode = nodes[nodeIndex + 1];
-
-          if ((j + 1 === column)) {
-            nodeIndex++
+          for (let index = 0; index < circleActive.edges.length; index++) {
+            const element = circleActive.edges[index];
+            if (element.edge.t !== 1) {
+              if (typeof element.edge.animation_time !== "undefined") {
+                if (element.edge.animation_time >= d) {
+                  element.edge.animation_time = d;
+                  element.edge.style = a.circle.color.code;
+                }
+              } else {
+                element.edge.animation_time = d;
+                element.edge.style = a.circle.color.code;
+              }
+            }
           }
 
-          edges.push({
-            source: sourceNode,
-            target: targetNode
-          });
 
-          // Multiple edge possibility
-          if (randomNumber(1, 5) === 3) {
-            edges.push({
-              source: targetNode,
-              target: sourceNode
-            });
-          }
-          nodeIndex++;
+          graph.set(nodeList, edges);
+          graph.draw();
         }
+
+        settings.information ? document.getElementById("stats").innerText = `${nodes.length} Nodes, ${edges.length} Edges` : false;
+        settings.information ? document.getElementById("node_freq").value = settings.nodeFrequency : false;
       }
-
-      // Drawing graph
-      const graph = new ccNetViz(c, {
-        styles: {
-          background: {
-            color: "rgb(0, 0, 0)"
-          },
-          node: {
-            texture: "./images/circle.png",
-            label: {
-              hideSize: 16
-            },
-            color: "rgb(50, 50, 50)"
-          },
-          ccNetViz: {
-            color: "rgb(255, 255, 255)"
-          },
-          edge: {
-            color: "rgb(50, 50, 50)"
-          },
-          default: {
-            color: "rgb(50, 50, 50)"
-          },
-          blue_active: {
-            color: "rgb(36, 82, 206)"
-          },
-          blue_passive: {
-            color: "rgb(93, 117, 183)"
-          },
-          blue_edge: {
-            color: "rgb(113, 137, 203)"
-          },
-          red_active: {
-            color: "rgb(204, 34, 34)"
-          },
-          red_passive: {
-            color: "rgb(204, 77, 77)"
-          },
-          red_edge: {
-            color: "rgb(224, 97, 97)"
-          }
-        }
-      });
 
       const _c = [
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -316,204 +604,35 @@
         [0, 1, 1, 1, 1, 1, 1, 1, 1, 0]
       ];
 
-      function transpose(arr) {
-        return arr.map((col, i) => arr.map(row => row[i]));
-      }
-
       let text = [_c, _c, _n, _e, _t, _v, _i, _z];
 
-      const nodeCount = text.map(item => { return item[0].length }).reduce(function (a, b) { return a + b }, 0);
-
-      text = text.map(item => { return transpose(item) });
-
-      function matrixToGraph(text) {
-        const NODE = {
-          LINE_SPACE: (8 / height),
-          SPACE: 6.80 / width
-        };
-
-        const textNodes = [];
-        let xCursor = (1 - (nodeCount * NODE.SPACE)) / 2;
-        for (let i = 0; i < text.length; i++) {
-          const letter = text[i];
-
-          for (let j = 0; j < letter.length; j++) {
-            const element = letter[j];
-            let y = (1 - (15 * NODE.LINE_SPACE));
-
-            if (typeof letter[j][0] === "undefined") {
-              break;
-            }
-
-            for (let k = 0; k < element.length; k++) {
-              const row = element[k];
-              if (row === 1) {
-                textNodes.push({
-                  x: xCursor,
-                  y: y,
-                  style: "ccNetViz"
-                })
-              }
-              y = y - NODE.LINE_SPACE;
-            }
-            xCursor = xCursor + NODE.SPACE;
-          }
-        }
-        return textNodes;
-      }
-
-      const logo = matrixToGraph(text);
-      const nodeList = nodes.concat(nodes, logo);
-
-      const animation = {
-        frame: {
-          count: 0,
-          index: 0
-        },
-        fps: 1,
-        time: 10,
-        circle: {
-          size: {
-            minimum: 0.01,
-            maximum: 0.05,
-            raise: 0,
-            index: 0
-          },
-          color: {
-            start: "blue_active",
-            end: "blue_passive",
-            edge: "blue_edge"
-          }
-        },
+      const canvas = document.getElementById("ccnetviz");
+      const settings = {
+        width: document.getElementById("graph").offsetWidth,
+        height: document.getElementById("graph").offsetHeight,
+        nodeFrequency: 20,
+        information: true
       };
 
-      animation.frame.count = animation.fps * animation.time;
-      animation.circle.size.raise = (animation.circle.size.maximum - animation.circle.size.minimum) / animation.frame.count;
+      drawLogo(canvas, settings, text);
 
-      graph.set(nodeList, edges);
-      graph.draw();
-
-      let animationInstances = [];
-      let r = [];
-      for (let i = 0; i < 5; i++) {
-        setTimeout(function () {
-          animationInstances[i] = JSON.stringify(animation);
-          animationInstances[i] = JSON.parse(animationInstances[i]);
-          r[i] = {
-            x: Math.random(),
-            y: Math.random()
-          };
-
-          setInterval(function () {
-            if (animationInstances[i].frame.count === animationInstances[i].frame.index) {
-              r[i] = {
-                x: Math.random(),
-                y: Math.random()
-              };
-            }
-            pulse(animationInstances[i], r[i]);
-          }, 1000 / animation.fps);
-
-        }, i * 2000);
-      }
-
-      function pulse(a, r) {
-        if (a.frame.count === a.frame.index) {
-          a.frame.index = 0;
-          a.circle.size.index = 0;
-          a.circle.size.raise = (a.circle.size.maximum - a.circle.size.minimum) / a.frame.count;
-
-          if (Math.floor(Math.random() * Math.floor(2)) > 0) {
-            a.circle.color.start = "red_active";
-            a.circle.color.end = "red_passive";
-            a.circle.color.edge = "red_edge";
-          } else {
-            a.circle.color.start = "blue_active";
-            a.circle.color.end = "blue_passive";
-            a.circle.color.edge = "blue_edge";
-          }
-        }
-
-        a.frame.index++;
-        a.frame.index === 1 ? a.circle.size.index += a.circle.size.minimum : false;
-        a.circle.size.index += a.circle.size.raise;
-
-        const circle = graph.find(r.x, r.y, a.circle.size.index, true, true);
-        const circleActive = graph.find(r.x, r.y, a.circle.size.index + 0.04, true, true);
-        const circleTransition = graph.find(r.x, r.y, a.circle.size.index + 0.02, true, true);
-
-        //Last 3 frame, remove effect
-        if (a.frame.index + 3 === a.frame.count) {
-          for (let index = 0; index < circleActive.nodes.length; index++) {
-            const element = circleActive.nodes[index];
-            if (element.node.style !== "ccNetViz") {
-              const j = element.node.index;
-              nodeList[j]["style"] = a.circle.color.end;
-            }
-          }
-        }
-
-        if (a.frame.index === a.frame.count) {
-          for (let index = 0; index < circleActive.nodes.length; index++) {
-            const element = circleActive.nodes[index];
-            if (element.node.style !== "ccNetViz") {
-              const j = element.node.index;
-              nodeList[j]["style"] = undefined;
-            }
-          }
-          for (let index = 0; index < circleActive.edges.length; index++) {
-            const element = circleActive.edges[index];
-            element.edge.style = undefined;
-          }
+      document.getElementById("menu").addEventListener("click", function () {
+        if (document.getElementById("generator").classList.value === "disable") {
+          document.getElementById("generator").classList.remove("disable");
+          document.getElementById("generator").classList.add("active");
         } else {
-          // Set the active color
-          if (!(a.frame.index + ((a.frame.count * 20) / 100) >= a.frame.count)) {
-            for (let index = 0; index < circleActive.nodes.length; index++) {
-              const element = circleActive.nodes[index];
-              if (typeof element.node.style === "undefined") {
-                const j = element.node.index;
-                nodeList[j]["style"] = a.circle.color.start;
-              }
-            }
-
-            for (let index = 0; index < circleActive.edges.length; index++) {
-              const element = circleActive.edges[index];
-              if (typeof element.edge.style === "undefined" && element.edge.t !== 1)
-                element.edge.style = a.circle.color.edge;
-            }
-          }
-
-          // Set the passive color
-          for (let index = 0; index < circleTransition.nodes.length; index++) {
-            const element = circleTransition.nodes[index];
-            if (element.node.style === a.circle.color.start) {
-              const element = circleTransition.nodes[index];
-              const j = element.node.index;
-              nodeList[j]["style"] = a.circle.color.end;
-            }
-          }
-          for (let index = 0; index < circle.edges.length; index++) {
-            const element = circle.edges[index];
-            element.edge.style = "default";
-          }
-
-          // Set the predefined color
-          for (let index = 0; index < circle.nodes.length; index++) {
-            const element = circle.nodes[index];
-            if (element.node.style === a.circle.color.end) {
-              const element = circle.nodes[index];
-              const j = element.node.index;
-              if (element.node.style !== "default")
-                nodeList[j]["style"] = "default";
-            }
-          }
+          document.getElementById("generator").classList.remove("active");
+          document.getElementById("generator").classList.add("disable");
         }
-
-        graph.set(nodeList, edges);
-        graph.draw();
-      }
-
-      document.getElementById("stats").innerText = `${nodes.length} Nodes, ${edges.length} Edges`;
+      });
+      document.getElementById("draw").addEventListener("click", function () {
+        document.getElementById("ccnetviz").remove();
+        let c = document.createElement("canvas");
+        c.id = "ccnetviz";
+        settings.nodeFrequency = parseInt(document.getElementById("node_freq").value);
+        document.getElementById("graph").appendChild(c);
+        drawLogo(c, settings, text);
+      });
     }, false);
   </script>
 </head>
@@ -521,6 +640,20 @@
 <body>
   <div id="graph">
     <canvas id="ccnetviz"></canvas>
-    <div id="stats"></div>
+    <div id="generator" class="disable">
+      <div>
+        <label>Node Frequency <b>(Frequency / Width)</b></label> <input id="node_freq" type="text" /></div>
+      <div id="stats"></div>
+      <div id="draw">Draw</div>
+      <div id="menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="30">
+          <g>
+            <title>Layer 1</title>
+            <polygon stroke="null" fill="#333333" id="svg_1"
+              points="12.470660711515762,7.262451527033875 10.89953332097403,5.68645715713501 3.131425619125366,13.469150521541394 3.131425619125366,13.469150521541394 3.131425619125366,13.469150521541394 10.89953332097403,21.25184856895197 12.470660711515762,19.675854422053305 6.2785539580718535,13.469150521541394 " />
+          </g>
+        </svg>
+      </div>
+    </div>
   </div>
 </body>
