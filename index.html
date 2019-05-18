@@ -24,99 +24,63 @@
       overflow: hidden;
     }
 
-    #graph #generator {
-      position: absolute;
-      top: 120px;
-      background: #f8f8f8;
-      border-radius: 2px;
-      width: 200px;
-      padding: 10px;
-      text-align: left;
-      font-family: 'Open Sans', sans-serif;
-      transition: 0.2s ease all;
-    }
-
-    #generator.disable {
-      right: -220px;
-    }
-
-    #generator.active {
-      right: 0;
-    }
-
-    #graph #generator #menu {
-      background: #e6e6e6;
-      width: 20px;
-      height: 40px;
-      position: absolute;
-      left: -20px;
-      top: 50px;
-      border-top-left-radius: 2px;
-      border-bottom-left-radius: 2px;
-      cursor: pointer;
-      box-shadow: 0 0 3px #b5b5b5;
-    }
-
-    div#draw {
-      background: #1aad3c;
-      color: #fff;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: bold;
-      letter-spacing: 0.5px;
-      box-shadow: 0 0 3px #024412;
-      text-align: center;
-      padding: 5px 0;
-      border-radius: 3px;
-    }
-
-    div#generator label {
-      font-size: 14px;
-      display: block;
-      text-align: center;
-      color: #444;
-      margin-bottom: 5px;
-    }
-
-    div#generator label b {
-      font-size: 10px;
-      display: block;
-    }
-
-    #node_freq {
-      border: none;
-      width: 100%;
-      padding: 5px 0;
-      border-radius: 2px;
-      background: #b7b7b7;
-      text-align: center;
-      color: #333;
-      font-weight: bold;
-    }
-
-    div#stats {
-      font-size: 12px;
-      text-align: center;
-      color: #444;
-      margin: 5px 0;
-    }
-
-    div#menu svg {
-      margin: 5px 3px;
-    }
-
-    div#zoom-information {
+    #stats {
       position: absolute;
       z-index: 55;
-      right: 5px;
+      left: 5px;
       bottom: 5px;
       color: rgba(255, 255, 255, 0.7);
       font-family: 'Open Sans', sans-serif;
       font-size: 12px;
     }
 
-    div#generator.active #menu svg {
-      transform: rotate(180deg);
+    input#range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #000;
+      border: 1px solid rgb(255, 255, 255);
+      cursor: pointer;
+      transition: 0.5s ease all;
+    }
+
+    input#range-slider::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 0px 3px rgba(255, 255, 255, 0.3);
+    }
+
+    input#range-slider {
+      -webkit-appearance: none;
+      width: 150px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.7);
+      transition: 0.3s ease all;
+      outline: none;
+      border-radius: 2px;
+      position: relative;
+      top: 2px;
+    }
+
+    input#range-slider:hover {
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    div#freq-information {
+      position: absolute;
+      bottom: 7px;
+      right: 5px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      font-family: 'Open Sans', sans-serif;
+    }
+
+    div#freq-information label {
+      display: inline-block;
+      position: relative;
+      top: 3px;
+      font-weight: bold;
+      letter-spacing: 0.3px;
     }
   </style>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto" rel="stylesheet">
@@ -487,7 +451,7 @@
         }
 
         settings.information ? document.getElementById("stats").innerText = `${nodes.length} Nodes, ${edges.length} Edges` : false;
-        settings.information ? document.getElementById("node_freq").value = settings.nodeFrequency : false;
+        settings.information ? document.getElementById("range-slider").value = settings.nodeFrequency : false;
       }
 
       const _c = [
@@ -628,44 +592,27 @@
 
       drawLogo(canvas, settings, text);
 
-      document.getElementById("menu").addEventListener("click", function () {
-        if (document.getElementById("generator").classList.value === "disable") {
-          document.getElementById("generator").classList.remove("disable");
-          document.getElementById("generator").classList.add("active");
-        } else {
-          document.getElementById("generator").classList.remove("active");
-          document.getElementById("generator").classList.add("disable");
-        }
-      });
-      document.getElementById("draw").addEventListener("click", function () {
+      document.getElementById("range-slider").addEventListener("change", function () {
+        console.log(this.value)
         document.getElementById("ccnetviz").remove();
         let c = document.createElement("canvas");
         c.id = "ccnetviz";
-        settings.nodeFrequency = parseInt(document.getElementById("node_freq").value);
+        settings.nodeFrequency = this.value;
         document.getElementById("graph").appendChild(c);
         drawLogo(c, settings, text);
       });
     }, false);
+
   </script>
 </head>
 
 <body>
   <div id="graph">
     <canvas id="ccnetviz"></canvas>
-    <div id="generator" class="disable">
-      <div>
-        <label>Node Frequency <b>(Frequency / Width)</b></label> <input id="node_freq" type="text" /></div>
-      <div id="stats"></div>
-      <div id="draw">Draw</div>
-      <div id="menu">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="30">
-          <g>
-            <polygon stroke="null" fill="#333333" id="svg_1"
-              points="12.470660711515762,7.262451527033875 10.89953332097403,5.68645715713501 3.131425619125366,13.469150521541394 3.131425619125366,13.469150521541394 3.131425619125366,13.469150521541394 10.89953332097403,21.25184856895197 12.470660711515762,19.675854422053305 6.2785539580718535,13.469150521541394 " />
-          </g>
-        </svg>
-      </div>
+    <div id="freq-information">
+      <label>Frequency</label>
+      <input type="range" min="10" max="80" id="range-slider">
     </div>
-    <div id="zoom-information">Use mouse to pan and zoom in the graph.</div>
+    <div id="stats"></div>
   </div>
 </body>
